@@ -3,6 +3,8 @@
 # ELVA Neovim Real-time Collaboration Plugin
 
 
+currently we need to be in `./lua/elva/` wherre `init.lua` for this plugin to work and then call `nvim -u ../../vimrc`. Form within `nvim` call `:UpdateRemotePlugins` and reopen `nvim`.
+
 ## Roadmap
 
 ### Functionality
