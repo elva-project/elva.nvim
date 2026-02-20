@@ -1,0 +1,39 @@
+# See https://pre-commit.com for more information
+# See https://pre-commit.com/hooks.html for more hooks
+repos:
+
+- repo: builtin
+  hooks:
+  - id: check-yaml
+    require_serial: true
+    priority: 1
+
+  - id: trailing-whitespace
+    require_serial: true
+    priority: 2
+
+- repo: local
+  hooks:
+  - id: ruff-check
+    name: ruff check
+    entry: ruff check -v
+    language: system
+    require_serial: true
+    priority: 3
+    pass_filenames: false
+
+  - id: ruff-format
+    name: ruff format
+    entry: ruff format -v
+    language: system
+    require_serial: true
+    priority: 4
+    pass_filenames: false
+
+  - id: ty
+    name: ty check
+    entry: ty check -vv
+    language: system
+    require_serial: true
+    priority: 5
+    pass_filenames: false

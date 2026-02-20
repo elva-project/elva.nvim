@@ -1,0 +1,23 @@
+# specs: https://docs.astral.sh/ruff/settings
+
+target-version = "py312"
+fix = true
+line-length = 88
+indent-width = 4
+
+[format]
+indent-style = "space"
+quote-style = "double"
+docstring-code-format = true
+docstring-code-line-length = "dynamic"
+
+[lint]
+select = [
+  # rules: https://docs.astral.sh/ruff/rules
+  "E4",   # pycodestyle, Error
+  "E7",   # pycodestyle, Error
+  "E9",   # pycodestyle, Error
+  "F",    # Pyflakes
+  "I",    # isort
+  "W291", # trailing whitespace
+]

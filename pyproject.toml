@@ -1,0 +1,72 @@
+# spec: see https://packaging.python.org/en/latest/specifications/pyproject-toml/
+[project]
+name = "elva.nvim"
+version="0.1.0"
+description = "Real-time collaboration plugin for Neovim."
+readme = "README.md"
+requires-python = ">=3.12"
+
+authors = [
+  { name = "Jakob Zahn", email = "jakob.zahn@mailbox.org" },
+]
+
+maintainers = [
+  { name = "Jakob Zahn", email = "jakob.zahn@mailbox.org" },
+]
+
+# specs: see https://packaging.python.org/en/latest/specifications/license-expression/
+# syntax: see https://peps.python.org/pep-0639/#spdx-license-expression-syntax
+# SPDX expression: see https://spdx.org/licenses/
+license = "AGPL-3.0-only"
+license-files = [
+  "LICENSE",
+]
+
+# see https://pypi.org/classifiers/
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Development Status :: 3 - Alpha",
+  "Environment :: Console",
+  "Intended Audience :: Developers",
+  "Intended Audience :: Education",
+  "Topic :: Communications",
+]
+
+keywords = [
+  "neovim",
+  "pynvim",
+  "crdt",
+  "y-crdt",
+  "elva",
+  "realtime",
+  "real-time",
+  "collaboration",
+  "rtc",
+]
+
+dependencies = [
+  "elva",
+  "pynvim",
+]
+
+[dependency-groups]
+dev = [
+  "coverage",
+  "git-cliff",
+  "prek",
+  "pytest",
+  "ruff",
+  "ty",
+]
+
+# see https://packaging.python.org/en/latest/specifications/well-known-project-urls/#well-known-labels
+[project.urls]
+source = "https://github.com/elva-project/elva.nvim"
+documentation = "https://github.com/elva-project/elva.nvim/blob/main/README.md"
+issues = "https://github.com/elva-project/elva.nvim/issues"
+changelog = "https://github.com/elva-project/elva.nvim/blob/main/CHANGELOG.md"
+
+[tool.uv.sources]
+elva = { path = "../elva", editable = true }
