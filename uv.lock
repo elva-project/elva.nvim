@@ -131,7 +131,8 @@ wheels = [
 
 [[package]]
 name = "elva"
-source = { editable = "../elva" }
+version = "0.35"
+source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "anyio" },
     { name = "click" },
@@ -148,43 +149,10 @@ dependencies = [
     { name = "tree-sitter-language-pack" },
     { name = "websockets" },
 ]
-
-[package.metadata]
-requires-dist = [
-    { name = "anyio" },
-    { name = "build", marker = "extra == 'dev'" },
-    { name = "click" },
-    { name = "coverage", marker = "extra == 'dev'" },
-    { name = "deepmerge" },
-    { name = "emoji" },
-    { name = "git-cliff", marker = "extra == 'dev'" },
-    { name = "ldap3", specifier = "~=2.10.2rc2" },
-    { name = "mkdocs", marker = "extra == 'dev'" },
-    { name = "mkdocs-material", marker = "extra == 'dev'" },
-    { name = "mkdocs-terminal", marker = "extra == 'dev'" },
-    { name = "mkdocstrings", marker = "extra == 'dev'" },
-    { name = "mkdocstrings-python", marker = "extra == 'dev'" },
-    { name = "nox", marker = "extra == 'dev'" },
-    { name = "numpy", marker = "extra == 'logo'" },
-    { name = "pycrdt" },
-    { name = "pyinstrument", marker = "extra == 'dev'" },
-    { name = "pytest", marker = "extra == 'dev'" },
-    { name = "rdflib", marker = "extra == 'logo'" },
-    { name = "rich" },
-    { name = "ruff", marker = "extra == 'dev'" },
-    { name = "setuptools" },
-    { name = "setuptools-scm", marker = "extra == 'dev'" },
-    { name = "sqlite-anyio" },
-    { name = "svg-py", marker = "extra == 'logo'" },
-    { name = "textual", extras = ["syntax"], specifier = ">=2.0,<6.0" },
-    { name = "textual-dev", marker = "extra == 'dev'" },
-    { name = "tomli" },
-    { name = "tomli-w" },
-    { name = "tree-sitter-language-pack" },
-    { name = "trio", marker = "extra == 'dev'" },
-    { name = "websockets", specifier = ">=14.0.0,<16.0" },
+sdist = { url = "https://files.pythonhosted.org/packages/51/75/5daf89c63a090e74284bee7eed2f00aa157e3fb722b592315bfb92e6dbc1/elva-0.35.tar.gz", hash = "sha256:ffd10e3dd59c5b8846651b27ea2043702a3aed825f7a4c21174c6561e8cb1670", size = 244718, upload-time = "2025-08-19T18:22:18.511Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/3c/20/68329246b9b456dd52e848a567e681a1ddf0e398afd47a0ad9ec2d728659/elva-0.35-py3-none-any.whl", hash = "sha256:69f56ae73e20f8f6116de3a412f516a8e4fb3163c06f67d737a4c899e5ee438a", size = 73526, upload-time = "2025-08-19T18:22:15.752Z" },
 ]
-provides-extras = ["dev", "logo"]
 
 [[package]]
 name = "elva-nvim"
@@ -207,7 +175,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "elva", editable = "../elva" },
+    { name = "elva" },
     { name = "pynvim" },
 ]
 

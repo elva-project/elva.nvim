@@ -68,5 +68,3 @@ documentation = "https://github.com/elva-project/elva.nvim/blob/main/README.md"
 issues = "https://github.com/elva-project/elva.nvim/issues"
 changelog = "https://github.com/elva-project/elva.nvim/blob/main/CHANGELOG.md"
 
-[tool.uv.sources]
-elva = { path = "../elva", editable = true }
