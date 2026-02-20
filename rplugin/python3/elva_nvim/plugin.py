@@ -85,9 +85,35 @@ class ElvaPlugin:
 
     @pynvim.function('ElvaOnBytesCallback', sync=False)
     def on_bytes_callback(self, args:list):
+        """
+        on_bytes:
+        Called on granular changes (compared to on_lines). Not called on buffer
+        reload (`:checktime`, `:edit`, …), see `on_reload:`. Return a [lua-truthy] value
+        to detach.
+        
+        Args:
+        - the string "bytes"
+        - buffer id
+        - b:changedtick
+        - start row of the changed text (zero-indexed)
+        - start column of the changed text
+        - byte offset of the changed text (from the start of
+            the buffer)
+        - old end row of the changed text (offset from start row)
+        - old end column of the changed text
+            (if old end row = 0, offset from start column)
+        - old end byte length of the changed text
+        - new end row of the changed text (offset from start row)
+        - new end column of the changed text
+            (if new end row = 0, offset from start column)
+        - new end byte length of the changed text
+
+        source: https://github.com/neovim/neovim/blob/08f4811061c9fde22b730e5d73f7fb49f61f7184/src/nvim/api/buffer.c#L139
+        """
         _str_bytes, _bufnr, _changedtick, start_row, start_col, byte_offset, _old_end_row, _old_end_col, old_byte_len, new_row, new_col, new_byte_len = args
         self.logger.debug("ElvaOnBytesCallback called")
-        self.logger.debug(f" {_bufnr = }, {start_row = }, {start_col = }, {byte_offset = }, {old_byte_len = }, {new_byte_len =}, {new_col =}, {new_row =}")
+        #self.logger.debug(f" {_bufnr = }, {start_row = }, {start_col = }, {byte_offset = }, {old_byte_len = }, {new_byte_len =}, {new_col =}, {new_row =}")
+        self.logger.debug(f"{start_row = }, {start_col = }, {byte_offset = }, {_old_end_row = }, {_old_end_col = }, {old_byte_len = }, {new_row = }, {new_col = }, {new_byte_len = }")
                 
         if _bufnr not in self.buffers:
             return
@@ -230,9 +256,9 @@ class ElvaPlugin:
         finally:
             state["applying_remote"] = False
 
-        awareness: Awareness = self.buffers[buf_id]["awareness"]
-        
-        self.logger.debug(str(awareness.client_states))
+        #awareness: Awareness = self.buffers[buf_id]["awareness"]
+
+        #self.logger.debug(str(awareness.client_states))
 
     def _advance_position(self, buf_id, row, col, char_count):
         """Advance (row, col) by char_count characters based on buffer content."""
