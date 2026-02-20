@@ -68,7 +68,7 @@ class ElvaPlugin:
 
         # Attach the Lua listener for local changes
         #self.nvim.lua.require('elva_nvim').attach(buf_id) # doesn't work
-        self.nvim.exec_lua("require('init').attach(...)", buf_id)
+        self.nvim.exec_lua("require('elva').attach(...)", buf_id)
         self.nvim.async_call(self._connect, host, port, room, buf_id)
 
     def _connect(self, host, port, room, buf_id):
