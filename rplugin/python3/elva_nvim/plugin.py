@@ -86,11 +86,8 @@ class ElvaPlugin:
     @pynvim.function('ElvaOnBytesCallback', sync=False)
     def on_bytes_callback(self, args:list):
         _str_bytes, _bufnr, _changedtick, start_row, start_col, byte_offset, _old_end_row, _old_end_col, old_byte_len, new_row, new_col, new_byte_len = args
-        self.logger.debug("ElvaOnBytesWrapper called")
-        self.logger.debug(f" {_bufnr = }, {start_row = }, {start_col = }, {byte_offset = }, {old_byte_len = }, {new_byte_len =}, {new_col =}")
-        
-        if new_byte_len is None:
-            pass
+        self.logger.debug("ElvaOnBytesCallback called")
+        self.logger.debug(f" {_bufnr = }, {start_row = }, {start_col = }, {byte_offset = }, {old_byte_len = }, {new_byte_len =}, {new_col =}, {new_row =}")
                 
         if _bufnr not in self.buffers:
             return
@@ -113,12 +110,23 @@ class ElvaPlugin:
                 lines = self.nvim.api.buf_get_text(_bufnr, start_row, start_col, end_row, end_col, {})
                 self.logger.debug(str(lines))
                 new_text = "\n".join(lines)
-            except:
-                #start_row -= 1
-                byte_offset -= 1  # we don't use byte_offset so we don't have to change it,
-                                                # but it is different for `o` and Enter on the last line
+            except Exception:
+                # TODO explain this error, probably a bug in neovim
+                # doing `o` or multiline `p` results in wrong arguments for the on_bytes callback
+                # start_row 
 
                 new_text = "\n"
+                if new_byte_len > 1: # inserting more then a newline
+                    end_col = self.nvim.api.buf_get_offset(_bufnr, end_row-1)
+                    lines = self.nvim.api.buf_get_text(_bufnr, start_row, start_col, end_row-1, end_col, {})
+                    new_text += "\n".join(lines)
+        if old_byte_len > 0:
+            # TODO we somehow have to catch the case of the previous exception in case of for example an undo or a `p` that replaces stuff
+            pass
+                
+
+
+
             
 
         self.on_bytes([_bufnr, start_row, start_col, byte_offset, old_byte_len, new_text])
