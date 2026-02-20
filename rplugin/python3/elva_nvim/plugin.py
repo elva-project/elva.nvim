@@ -67,9 +67,61 @@ class ElvaPlugin:
         
 
         # Attach the Lua listener for local changes
-        #self.nvim.lua.require('elva_nvim').attach(buf_id) # doesn't work
-        self.nvim.exec_lua("require('elva').attach(...)", buf_id)
+        #self.nvim.exec_lua("require('elva').attach(...)", buf_id)
+        self.attach_callback(buf_id)
         self.nvim.async_call(self._connect, host, port, room, buf_id)
+
+    def attach_callback(self, buf_id):
+        """
+            Attatch on_bytes_callback (nvim fn name `ElvaOnBytesCallback`) to the buffer
+        """
+        self.nvim.exec_lua("""
+                           local attached = vim.api.nvim_buf_attach(..., false, {
+                                    on_bytes=function(_str_bytes, _bufnr, _changedtick, start_row, start_col, byte_offset, _old_end_row, _old_end_col, old_byte_len, new_row, new_col, new_byte_len)
+                                                vim.fn.ElvaOnBytesCallback(_str_bytes, _bufnr, _changedtick, start_row, start_col, byte_offset, _old_end_row, _old_end_col, old_byte_len, new_row, new_col, new_byte_len)
+                                            end
+                               })
+                           """, buf_id)
+
+    @pynvim.function('ElvaOnBytesCallback', sync=False)
+    def on_bytes_callback(self, args:list):
+        _str_bytes, _bufnr, _changedtick, start_row, start_col, byte_offset, _old_end_row, _old_end_col, old_byte_len, new_row, new_col, new_byte_len = args
+        self.logger.debug("ElvaOnBytesWrapper called")
+        self.logger.debug(f" {_bufnr = }, {start_row = }, {start_col = }, {byte_offset = }, {old_byte_len = }, {new_byte_len =}, {new_col =}")
+        
+        if new_byte_len is None:
+            pass
+                
+        if _bufnr not in self.buffers:
+            return
+
+        if self.buffers[_bufnr]["applying_remote"]:
+            return
+        
+        new_text = ""
+
+        if new_byte_len > 0:
+            end_row = start_row + new_row
+            #if new_col == 0:
+            #    end_col = start_col + new_col
+            #else:
+            #    end_col = new_col
+            end_col = start_col + new_col # works
+
+        
+            try:
+                lines = self.nvim.api.buf_get_text(_bufnr, start_row, start_col, end_row, end_col, {})
+                self.logger.debug(str(lines))
+                new_text = "\n".join(lines)
+            except:
+                #start_row -= 1
+                byte_offset -= 1  # we don't use byte_offset so we don't have to change it,
+                                                # but it is different for `o` and Enter on the last line
+
+                new_text = "\n"
+            
+
+        self.on_bytes([_bufnr, start_row, start_col, byte_offset, old_byte_len, new_text])
 
     def _connect(self, host, port, room, buf_id):
         self.logger.info(f"Starting session for buffer {buf_id} in room {room}")
@@ -101,7 +153,6 @@ class ElvaPlugin:
         # Start the async session
         asyncio.create_task(self.start_session(provider))
 
-
     async def start_session(self, provider):
         try:
             # Start the provider (assuming it's an async context manager)
@@ -111,7 +162,6 @@ class ElvaPlugin:
         except Exception as e:
             self.logger.exception("Error in Elva session")
             self.nvim.err_write(f"Elva Error: {e}\n")
-
 
     def on_remote_change(self, buf_id, event, transaction):
         """Handle remote changes from Yjs."""
@@ -206,7 +256,7 @@ class ElvaPlugin:
         return cur_row, cur_col
 
 
-    @pynvim.function('ElvaOnBytes', sync=False)
+    #@pynvim.function('ElvaOnBytes', sync=False)
     def on_bytes(self, args):
         """Handle local changes from Neovim."""
         buf_id, start_row, start_col, byte_offset, old_byte_len, new_bytes = args
