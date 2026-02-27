@@ -83,6 +83,12 @@ class ElvaPlugin:
                                })
                            """, buf_id)
 
+
+    # the reported positions of on_bytes are just bugged rn
+    # if we wanna attatch to line changes `on_lines` callback:
+    # it's documented here: https://github.com/neovim/neovim/blob/6435c61bd61ce910da6659394d918f7f36e932ba/runtime/doc/api.txt#L2306
+    # nvim_buf_get_lines 
+
     @pynvim.function('ElvaOnBytesCallback', sync=False)
     def on_bytes_callback(self, args:list):
         """
@@ -123,39 +129,47 @@ class ElvaPlugin:
         
         new_text = ""
 
-        if new_byte_len > 0:
-            end_row = start_row + new_row
-            #if new_col == 0:
-            #    end_col = start_col + new_col
-            #else:
-            #    end_col = new_col
-            end_col = start_col + new_col # works
+        end_row = start_row + new_row
 
+        # from doc string:
+        # - new end column of the changed text
+        #     (if new end row = 0, offset from start column)
+        if new_row == 0:
+            end_col = start_col + new_col
+        else:
+            end_col = new_col
         
+        if old_byte_len > 0:  # we are deleting somthing
+            if new_row-start_row == 1: # there is 1 new line
+                if new_byte_len == 1: # only one new byte -> only line
+                    # new_text = ""
+                    new_byte_len = 0
+                    end_row = start_row
+                    # we could call on_bytes and return here
+
+
+        if new_byte_len > 0:
             try:
                 lines = self.nvim.api.buf_get_text(_bufnr, start_row, start_col, end_row, end_col, {})
                 self.logger.debug(str(lines))
                 new_text = "\n".join(lines)
             except Exception:
-                # TODO explain this error, probably a bug in neovim
-                # doing `o` or multiline `p` results in wrong arguments for the on_bytes callback
-                # start_row 
+                # The exception is expected and not helpful!
+                # This is probably an neovim bug if the second buf_get_text doesn't raise an exception!
+                # It only happens in buffer changes including the last line of the buffer
+                # For more info see: https://github.com/neovim/neovim/issues/37989
+                self.logger.debug("Got expected Exception in on_bytes_callback from nvim.api.buf_get_text if this is not \
+                                  followed by a second exception this is an expected neovim index bug of the on_bytes callback from nvim_buf_attach\n")
 
-                new_text = "\n"
-                if new_byte_len > 1: # inserting more then a newline
+                if new_byte_len == 1:
+                    new_text = "\n"
+                    byte_offset -= 1
+                elif new_byte_len > 1: # inserting more then a newline      
                     end_col = self.nvim.api.buf_get_offset(_bufnr, end_row-1)
                     lines = self.nvim.api.buf_get_text(_bufnr, start_row, start_col, end_row-1, end_col, {})
                     new_text += "\n".join(lines)
-        if old_byte_len > 0:
-            # TODO we somehow have to catch the case of the previous exception in case of for example an undo or a `p` that replaces stuff
-            pass
-                
-
-
-
-            
-
-        self.on_bytes([_bufnr, start_row, start_col, byte_offset, old_byte_len, new_text])
+        
+        self.nvim.async_call(self.on_bytes, _bufnr, start_row, start_col, byte_offset, old_byte_len, new_byte_len, new_text)
 
     def _connect(self, host, port, room, buf_id):
         self.logger.info(f"Starting session for buffer {buf_id} in room {room}")
@@ -289,44 +303,52 @@ class ElvaPlugin:
         
         return cur_row, cur_col
 
-
-    #@pynvim.function('ElvaOnBytes', sync=False)
-    def on_bytes(self, args):
+    def on_bytes(self, buf_id, start_row, start_col, byte_offset, old_byte_len, new_byte_len, new_text):
         """Handle local changes from Neovim."""
-        buf_id, start_row, start_col, byte_offset, old_byte_len, new_bytes = args
-        # byte_offset is not used, remove it?
+        deleted_state, inserted_state = False, False
 
         self.logger.debug("ElvaOnBytes called")
-        self.logger.debug(f" {buf_id = }, {start_row = }, {start_col = }, {byte_offset = }, {old_byte_len = }, {new_bytes = }")
-        
-        if buf_id not in self.buffers:
-            return
-
+        self.logger.debug(f" {buf_id = }, {start_row = }, {start_col = }, {byte_offset = }, {old_byte_len = }, {new_byte_len =}, {new_text = }")
         state = self.buffers[buf_id]
-        if state["applying_remote"]:
-            return
-
         ytext = state["ytext"]
-        
-        # Decode bytes to string for Yjs (assuming UTF-8 buffer)
-        if isinstance(new_bytes, bytes):
-            new_text = new_bytes.decode('utf-8')
-        else:
-            new_text = new_bytes
 
         # Apply to YText
         with state["ydoc"].transaction(origin="nvim"):
-            # Convert byte offset to char offset for Yjs
-            # We use the current ytext state (which matches pre-edit buffer) to find the position
-            char_offset = self._get_char_offset(ytext, start_row, start_col)
-            
-            if old_byte_len > 0:
-                # Calculate how many characters correspond to the deleted bytes
-                del_len = self._get_delete_length(ytext, char_offset, old_byte_len)
-                del ytext[char_offset: char_offset+del_len] 
-            if new_text:
-                ytext.insert(char_offset, new_text)
+            buffer_size = len(ytext)
+            self.logger.debug(f"{buffer_size = }")
 
+            if old_byte_len > 0:
+                del_len = old_byte_len
+
+                self.logger.debug(f"got: {byte_offset = }, {del_len = }")
+                if byte_offset + del_len > buffer_size:
+                    if buffer_size - del_len >= 0: # nur >?
+                        byte_offset =  buffer_size - del_len
+                    elif del_len == 1:
+                        del_len = 0
+                    else:
+                        byte_offset = 0
+                        del_len = buffer_size+1
+
+                if del_len != 0:
+
+                    self.logger.debug(f"deleting at {byte_offset = }, {del_len = }")
+                    del ytext[byte_offset: byte_offset+del_len]
+                    self.logger.debug(f"sucessfully deleted {byte_offset = }, {del_len = }")
+                    deleted_state = True
+                else:
+                    self.logger.debug(f"not deleting at {byte_offset = } because {del_len = }")
+            if new_text:
+                if byte_offset - buffer_size == 1:
+                    new_text = "\n" + new_text
+                self.logger.debug(f"inserting at {byte_offset =}, {new_text =}")
+                ytext.insert(byte_offset, new_text)
+                inserted_state = True
+
+            new_buffer_size = len(ytext)
+            self.logger.debug(f"on_bytes done with {int(deleted_state)} delete and {int(inserted_state)} insert operation,  {new_buffer_size = }")
+            
+            
     @pynvim.function('ElvaOnCursorMoved', sync=False)
     def on_cursor_moved(self, args):
         """Handle cursor movements from Neovim."""
