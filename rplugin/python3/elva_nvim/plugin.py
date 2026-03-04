@@ -1,20 +1,15 @@
-import pynvim
 import asyncio
 import logging
 import sys
+import time
 from pathlib import Path
+
 import greenlet
-#try:
+import pynvim
+from elva.awareness import Awareness
 from elva.provider import WebsocketProvider
 from pycrdt import Doc, Text
-from elva.awareness import Awareness
-from pynvim import Nvim
-#except ImportError:
-#    # This might happen during initial setup before paths are correct
-#    Doc = None
-#    WebsocketProvider = None
-#    Awareness = None
-
+from pynvim import Nvim, NvimError
 
 # Add the local elva library to sys.path
 # Assuming the structure is vim_elva/elva and vim_elva/rplugin/...
@@ -54,20 +49,14 @@ class ElvaPlugin:
 
         host, port, room = args[0], args[1], args[2]
         win = self.nvim.current.window
-        buf = win.buffer # current buffer
-        #buf = self.nvim.current.buffer
+        buf = win.buffer # self.nvim.current.buffer
         buf_id = buf.number
-        win_id = win.number
-        #self.nvim.session.
+        # win_id = win.number
 
         
         if buf_id in self.buffers:
             self.nvim.out_write(f"Buffer {buf_id} is already connected.\n")
             return
-        
-
-        # Attach the Lua listener for local changes
-        #self.nvim.exec_lua("require('elva').attach(...)", buf_id)
         self.attach_callback(buf_id)
         self.nvim.async_call(self._connect, host, port, room, buf_id)
 
@@ -77,8 +66,8 @@ class ElvaPlugin:
         """
         self.nvim.exec_lua("""
                            local attached = vim.api.nvim_buf_attach(..., false, {
-                                    on_bytes=function(_str_bytes, _bufnr, _changedtick, start_row, start_col, byte_offset, _old_end_row, _old_end_col, old_byte_len, new_row, new_col, new_byte_len)
-                                                vim.fn.ElvaOnBytesCallback(_str_bytes, _bufnr, _changedtick, start_row, start_col, byte_offset, _old_end_row, _old_end_col, old_byte_len, new_row, new_col, new_byte_len)
+                                    on_bytes=function(...)
+                                                vim.fn.ElvaOnBytesCallback(...)
                                             end
                                })
                            """, buf_id)
@@ -87,7 +76,7 @@ class ElvaPlugin:
     # the reported positions of on_bytes are just bugged rn
     # if we wanna attatch to line changes `on_lines` callback:
     # it's documented here: https://github.com/neovim/neovim/blob/6435c61bd61ce910da6659394d918f7f36e932ba/runtime/doc/api.txt#L2306
-    # nvim_buf_get_lines 
+    # nvim_buf_get_lines
 
     @pynvim.function('ElvaOnBytesCallback', sync=False)
     def on_bytes_callback(self, args:list):
@@ -125,6 +114,7 @@ class ElvaPlugin:
             return
 
         if self.buffers[_bufnr]["applying_remote"]:
+            self.logger.debug("ElvaOnBytesCallback doing nothing because of remote update")
             return
         
         new_text = ""
@@ -153,18 +143,19 @@ class ElvaPlugin:
                 lines = self.nvim.api.buf_get_text(_bufnr, start_row, start_col, end_row, end_col, {})
                 self.logger.debug(str(lines))
                 new_text = "\n".join(lines)
-            except Exception:
+            except NvimError as e:
                 # The exception is expected and not helpful!
                 # This is probably an neovim bug if the second buf_get_text doesn't raise an exception!
                 # It only happens in buffer changes including the last line of the buffer
                 # For more info see: https://github.com/neovim/neovim/issues/37989
-                self.logger.debug("Got expected Exception in on_bytes_callback from nvim.api.buf_get_text if this is not \
-                                  followed by a second exception this is an expected neovim index bug of the on_bytes callback from nvim_buf_attach\n")
+                self.logger.debug("Got expected Exception in on_bytes_callback from nvim.api.buf_get_text")
+                # if this is not followed by a second exception this is an expected neovim index bug of the on_bytes callback from nvim_buf_attach
+                assert str(e) == "Index out of bounds" # if this fails it's not the neovim bug
 
                 if new_byte_len == 1:
                     new_text = "\n"
                     byte_offset -= 1
-                elif new_byte_len > 1: # inserting more then a newline      
+                elif new_byte_len > 1: # inserting more then a newline
                     end_col = self.nvim.api.buf_get_offset(_bufnr, end_row-1)
                     lines = self.nvim.api.buf_get_text(_bufnr, start_row, start_col, end_row-1, end_col, {})
                     new_text += "\n".join(lines)
@@ -265,7 +256,7 @@ class ElvaPlugin:
                     # Delete text
                     self.nvim.api.buf_set_text(buf_id, cur_row, cur_col, end_row, end_col, [])
                     # Cursor stays at start of deletion
-        except Exception as e:
+        except Exception:
             self.logger.exception("Failed to apply remote change")
         finally:
             state["applying_remote"] = False
@@ -400,22 +391,6 @@ class ElvaPlugin:
             except Exception:
                 pass
         return offset
-
-    def _get_delete_length(self, ytext, char_offset, byte_len):
-        """Calculate how many chars starting at char_offset sum up to byte_len bytes."""
-        if byte_len == 0:
-            return 0
-        text = str(ytext)
-        current_bytes = 0
-        count = 0
-        i = char_offset
-        while current_bytes < byte_len and i < len(text):
-            char = text[i]
-            current_bytes += len(char.encode('utf-8'))
-            count += 1
-            i += 1
-        return count
-
 
 
     @pynvim.function('ElvaLogDebug', sync=False)
