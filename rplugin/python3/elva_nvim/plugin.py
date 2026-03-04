@@ -231,8 +231,17 @@ class ElvaPlugin:
                 if 'retain' in delta:
                     count = delta['retain']
                     # Advance our cursor by 'count' characters in the buffer
+                    start_time_old = time.time()
                     cur_row, cur_col = self._advance_position(buf_id, cur_row, cur_col, count)
-                    
+                    start_time_new = time.time()
+                    cur_row_new, cur_col_new = self._advance_position_new(buf_id, cur_row, cur_col, count)
+                    end_time = time.time()
+                    time_old = start_time_new - start_time_old
+                    time_new = end_time - start_time_old
+                    self.logger.debug(f"{time_old =}, {cur_row = }, {cur_col = }")
+                    self.logger.debug(f"{time_new =}, {cur_row_new = }, {cur_col_new = }")
+                    assert cur_row == cur_row_new and cur_col == cur_col_new
+
                 elif 'insert' in delta:
                     text = delta['insert']
                     lines = text.split('\n')
@@ -251,7 +260,16 @@ class ElvaPlugin:
                 elif 'delete' in delta:
                     length = delta['delete']
                     # Determine the end position of the deletion
+                    start_time_old = time.time()
                     end_row, end_col = self._advance_position(buf_id, cur_row, cur_col, length)
+                    start_time_new = time.time()
+                    end_row_new, end_col_new = self._advance_position_new(buf_id, cur_row, cur_col, length)
+                    end_time = time.time()
+                    time_old = start_time_new - start_time_old
+                    time_new = end_time - start_time_old
+                    self.logger.debug(f"{time_old =}, {end_row = }, {end_col = }")
+                    self.logger.debug(f"{time_new =}, {end_row_new = }, {end_col_new = }")
+                    assert end_row == end_col_new and end_col == end_col_new
                     
                     # Delete text
                     self.nvim.api.buf_set_text(buf_id, cur_row, cur_col, end_row, end_col, [])
@@ -264,6 +282,46 @@ class ElvaPlugin:
         #awareness: Awareness = self.buffers[buf_id]["awareness"]
 
         #self.logger.debug(str(awareness.client_states))
+
+    def _advance_position_new(self, buf_id, start_row, start_col, byte_offset):
+        """Advance (row, col) by char_count characters based on buffer content.
+
+         uses
+         nvim_buf_get_offset({buffer}, {index})
+           Returns the byte offset of a line (0-indexed).
+           Line 1 (index=0) has offset 0. UTF-8 bytes are counted.
+         https://github.com/neovim/neovim/blob/6435c61bd61ce910da6659394d918f7f36e932ba/runtime/doc/api.txt#L2559
+
+        """
+       
+        start_line_offset = self.nvim.api.buf_get_offset(buf_id, start_row)
+        start_byte_offset = start_line_offset+ start_col
+        end_offset = start_byte_offset + byte_offset
+        buffer_lines = self.nvim.api.buf_line_count(buf_id)
+
+        buffer_size = len(self.buffers[buf_id]["ytext"])
+
+        try:
+            assert end_offset <= buffer_size
+        except AssertionError:
+            self.logger.exception(f"{end_offset = } > {buffer_size = }")
+            end_offset = buffer_size
+
+        last_line_offset = start_line_offset
+        end_row, end_col = start_row, start_col
+
+        for line in range(start_row, buffer_lines):
+            line_offset = self.nvim.api.buf_get_offset(buf_id, line)
+            if line_offset > end_offset:
+                end_row = line-1
+                end_col = end_offset - last_line_offset
+                break
+            last_line_offset = line_offset
+        else:
+            end_row = line
+            end_col = end_offset - line_offset
+
+        return end_row, end_col
 
     def _advance_position(self, buf_id, row, col, char_count):
         """Advance (row, col) by char_count characters based on buffer content."""
