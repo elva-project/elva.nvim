@@ -131,7 +131,8 @@ wheels = [
 
 [[package]]
 name = "elva"
-source = { editable = "../elva" }
+version = "0.35"
+source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "anyio" },
     { name = "click" },
@@ -148,43 +149,10 @@ dependencies = [
     { name = "tree-sitter-language-pack" },
     { name = "websockets" },
 ]
-
-[package.metadata]
-requires-dist = [
-    { name = "anyio" },
-    { name = "build", marker = "extra == 'dev'" },
-    { name = "click" },
-    { name = "coverage", marker = "extra == 'dev'" },
-    { name = "deepmerge" },
-    { name = "emoji" },
-    { name = "git-cliff", marker = "extra == 'dev'" },
-    { name = "ldap3", specifier = "~=2.10.2rc2" },
-    { name = "mkdocs", marker = "extra == 'dev'" },
-    { name = "mkdocs-material", marker = "extra == 'dev'" },
-    { name = "mkdocs-terminal", marker = "extra == 'dev'" },
-    { name = "mkdocstrings", marker = "extra == 'dev'" },
-    { name = "mkdocstrings-python", marker = "extra == 'dev'" },
-    { name = "nox", marker = "extra == 'dev'" },
-    { name = "numpy", marker = "extra == 'logo'" },
-    { name = "pycrdt" },
-    { name = "pyinstrument", marker = "extra == 'dev'" },
-    { name = "pytest", marker = "extra == 'dev'" },
-    { name = "rdflib", marker = "extra == 'logo'" },
-    { name = "rich" },
-    { name = "ruff", marker = "extra == 'dev'" },
-    { name = "setuptools" },
-    { name = "setuptools-scm", marker = "extra == 'dev'" },
-    { name = "sqlite-anyio" },
-    { name = "svg-py", marker = "extra == 'logo'" },
-    { name = "textual", extras = ["syntax"], specifier = ">=2.0,<6.0" },
-    { name = "textual-dev", marker = "extra == 'dev'" },
-    { name = "tomli" },
-    { name = "tomli-w" },
-    { name = "tree-sitter-language-pack" },
-    { name = "trio", marker = "extra == 'dev'" },
-    { name = "websockets", specifier = ">=14.0.0,<16.0" },
+sdist = { url = "https://files.pythonhosted.org/packages/51/75/5daf89c63a090e74284bee7eed2f00aa157e3fb722b592315bfb92e6dbc1/elva-0.35.tar.gz", hash = "sha256:ffd10e3dd59c5b8846651b27ea2043702a3aed825f7a4c21174c6561e8cb1670", size = 244718, upload-time = "2025-08-19T18:22:18.511Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/3c/20/68329246b9b456dd52e848a567e681a1ddf0e398afd47a0ad9ec2d728659/elva-0.35-py3-none-any.whl", hash = "sha256:69f56ae73e20f8f6116de3a412f516a8e4fb3163c06f67d737a4c899e5ee438a", size = 73526, upload-time = "2025-08-19T18:22:15.752Z" },
 ]
-provides-extras = ["dev", "logo"]
 
 [[package]]
 name = "elva-nvim"
@@ -193,6 +161,8 @@ source = { virtual = "." }
 dependencies = [
     { name = "elva" },
     { name = "pynvim" },
+    { name = "pytest" },
+    { name = "pytest-asyncio" },
 ]
 
 [package.dev-dependencies]
@@ -207,8 +177,10 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "elva", editable = "../elva" },
+    { name = "elva" },
     { name = "pynvim" },
+    { name = "pytest", specifier = ">=9.0.2" },
+    { name = "pytest-asyncio", specifier = ">=1.3.0" },
 ]
 
 [package.metadata.requires-dev]
@@ -582,6 +554,19 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/d1/db/7ef3487e0fb0049ddb5ce41d3a49c235bf9ad299b6a25d5780a89f19230f/pytest-9.0.2.tar.gz", hash = "sha256:75186651a92bd89611d1d9fc20f0b4345fd827c41ccd5c299a868a05d70edf11", size = 1568901, upload-time = "2025-12-06T21:30:51.014Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/3b/ab/b3226f0bd7cdcf710fbede2b3548584366da3b19b5021e74f5bde2a8fa3f/pytest-9.0.2-py3-none-any.whl", hash = "sha256:711ffd45bf766d5264d487b917733b453d917afd2b0ad65223959f59089f875b", size = 374801, upload-time = "2025-12-06T21:30:49.154Z" },
+]
+
+[[package]]
+name = "pytest-asyncio"
+version = "1.3.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "pytest" },
+    { name = "typing-extensions", marker = "python_full_version < '3.13'" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/90/2c/8af215c0f776415f3590cac4f9086ccefd6fd463befeae41cd4d3f193e5a/pytest_asyncio-1.3.0.tar.gz", hash = "sha256:d7f52f36d231b80ee124cd216ffb19369aa168fc10095013c6b014a34d3ee9e5", size = 50087, upload-time = "2025-11-10T16:07:47.256Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/e5/35/f8b19922b6a25bc0880171a2f1a003eaeb93657475193ab516fd87cac9da/pytest_asyncio-1.3.0-py3-none-any.whl", hash = "sha256:611e26147c7f77640e6d0a92a38ed17c3e9848063698d5c93d5aa7aa11cebff5", size = 15075, upload-time = "2025-11-10T16:07:45.537Z" },
 ]
 
 [[package]]
